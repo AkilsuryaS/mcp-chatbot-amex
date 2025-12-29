@@ -17,13 +17,21 @@ mcp = FastMCP("amex-mock-mcp")
 @mcp.tool
 def list_cards() -> list[dict[str, Any]]:
     """
-    Return all cards from mock data.
+    Return all cards from mock data as a flat list.
     """
     store = MockStore.load()
-    # store.cards is expected to be a list[dict]
-    available_cards = getattr(store, "cards", []) or []
-    print(f"list_cards: found {len(available_cards)} cards")
-    return available_cards
+
+    cards = getattr(store, "cards", []) or []
+
+    # If cards accidentally comes wrapped like {"cards":[...]}
+    if isinstance(cards, dict):
+        cards = cards.get("cards", [])
+
+    # Defensive: ensure list
+    if not isinstance(cards, list):
+        return []
+
+    return cards
 
 
 @mcp.tool
