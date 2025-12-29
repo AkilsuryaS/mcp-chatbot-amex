@@ -8,10 +8,30 @@ from typing import Any
 from amex_core.settings import settings
 
 
-def _load_json(path: Path) -> list[dict[str, Any]]:
+def _load_json(path: Path) -> Any:
+    """Load JSON from disk. Returns dict/list/None depending on file contents."""
     if not path.exists():
-        return []
+        return None
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _as_list_of_dicts(value: Any, wrapper_key: str) -> list[dict[str, Any]]:
+    """
+    Accepts either:
+      - list[dict]
+      - dict like {"cards":[...]} / {"offers":[...]} / {"customers":[...]}
+    Returns a safe list[dict].
+    """
+    if isinstance(value, dict):
+        value = value.get(wrapper_key, [])
+    if not isinstance(value, list):
+        return []
+
+    out: list[dict[str, Any]] = []
+    for item in value:
+        if isinstance(item, dict):
+            out.append(item)
+    return out
 
 
 @dataclass(frozen=True)
@@ -19,33 +39,53 @@ class MockStore:
     cards: list[dict[str, Any]]
     offers: list[dict[str, Any]]
     customers: list[dict[str, Any]]
+    faq: list[dict[str, Any]]
 
     @classmethod
     def load(cls) -> "MockStore":
         base = Path(settings.AMEX_DATA_DIR)
-        return cls(
-            cards=_load_json(base / "cards.json"),
-            offers=_load_json(base / "offers.json"),
-            customers=_load_json(base / "customers.json"),
-        )
 
-    # ---- simple “tool” operations ----
+        cards_blob = _load_json(base / "amex_cards.json")
+        offers_blob = _load_json(base / "offers.json")
+        customers_blob = _load_json(base / "customers_profile.json")
+        faq_blob = _load_json(base / "faq.json")
+
+        cards = _as_list_of_dicts(cards_blob, "cards")
+        offers = _as_list_of_dicts(offers_blob, "offers")
+        customers = _as_list_of_dicts(customers_blob, "customers")
+        faq = _as_list_of_dicts(faq_blob, "faq")
+
+        return cls(cards=cards, offers=offers, customers=customers, faq=faq)
+
+    # ---- tool operations ----
     def search_cards(self, query: str) -> list[dict[str, Any]]:
+        """
+        Search across fields that actually exist in amex_cards.json:
+        - id, name, type, category, benefits, rewards keys
+        """
         q = (query or "").strip().lower()
         if not q:
             return self.cards
+
         out: list[dict[str, Any]] = []
         for c in self.cards:
+            rewards_keys = " ".join(map(str, (c.get("rewards") or {}).keys()))
+            benefits = " ".join(map(str, c.get("benefits", []) or []))
+
             hay = " ".join(
                 [
                     str(c.get("id", "")),
                     str(c.get("name", "")),
-                    str(c.get("reward_rate", "")),
-                    " ".join(c.get("best_for", []) or []),
+                    str(c.get("type", "")),
+                    str(c.get("category", "")),
+                    rewards_keys,
+                    benefits,
                 ]
             ).lower()
+
             if q in hay:
                 out.append(c)
+
         return out
 
     def get_customer(self, customer_id: str) -> dict[str, Any] | None:
@@ -67,6 +107,7 @@ class MockStore:
             if score >= 750 and income >= 1200000:
                 return {"eligible": True, "reason": "Meets Platinum mock criteria"}
             return {"eligible": False, "reason": "Needs credit_score>=750 and income_inr>=1200000"}
+
         if card_id == "gold":
             if score >= 700 and income >= 600000:
                 return {"eligible": True, "reason": "Meets Gold mock criteria"}
@@ -88,5 +129,5 @@ class MockStore:
         return {"monthly_spend_inr": spend, "card_id": card_id, "estimated_points": points}
 
     def compare_cards(self, card_ids: list[str]) -> list[dict[str, Any]]:
-        wanted = set(card_ids)
-        return [c for c in self.cards if c.get("id") in wanted]
+        wanted = {c.strip().lower() for c in (card_ids or [])}
+        return [c for c in self.cards if (c.get("id") or "").lower() in wanted]
