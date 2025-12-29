@@ -1,0 +1,99 @@
+{
+    "current_offers": [
+      {
+        "id": "platinum_elevated_2025",
+        "card_id": "platinum",
+        "type": "signup_bonus",
+        "title": "Elevated Welcome Offer",
+        "description": "Earn 100,000 Membership Rewards points",
+        "requirements": "Spend $6,000 in first 6 months",
+        "value_estimate": 1000,
+        "expiry_date": "2025-08-31",
+        "terms": "Limited time offer for new cardholders"
+      },
+      {
+        "id": "gold_summer_2025",
+        "card_id": "gold", 
+        "type": "signup_bonus",
+        "title": "Summer Dining Bonus",
+        "description": "Earn 75,000 points + $250 restaurant credit",
+        "requirements": "Spend $4,000 in first 6 months",
+        "value_estimate": 1000,
+        "expiry_date": "2025-09-15",
+        "terms": "Restaurant credit valid for first year"
+      },
+      {
+        "id": "referral_bonus_2025",
+        "card_id": "all",
+        "type": "referral",
+        "title": "Refer a Friend Bonus",
+        "description": "Earn up to 55,000 points for referrals",
+        "requirements": "Friend must be approved and spend $1,000",
+        "value_estimate": 550,
+        "expiry_date": "2025-12-31",
+        "terms": "Up to 5 referrals per year"
+      }
+    ],
+    "merchant_offers": [
+      {
+        "id": "amazon_5x_2025",
+        "merchant": "Amazon",
+        "offer": "5x points on Amazon purchases",
+        "card_eligibility": ["platinum", "gold"],
+        "max_spend": 2000,
+        "expiry_date": "2025-07-31",
+        "activation_required": true
+      },
+      {
+        "id": "uber_statement_credit",
+        "merchant": "Uber",
+        "offer": "$15 monthly Uber credit",
+        "card_eligibility": ["gold"],
+        "max_spend": 15,
+        "expiry_date": "ongoing",
+        "activation_required": false
+      },
+      {
+        "id": "airline_fee_credit",
+        "merchant": "Various Airlines",
+        "offer": "$200 annual airline fee credit",
+        "card_eligibility": ["platinum", "business_platinum"],
+        "max_spend": 200,
+        "expiry_date": "annual_reset",
+        "activation_required": true
+      },
+      {
+        "id": "streaming_bonus",
+        "merchant": "Streaming Services",
+        "offer": "6% cash back on streaming",
+        "card_eligibility": ["blue_cash_preferred"],
+        "max_spend": 6000,
+        "expiry_date": "ongoing",
+        "activation_required": false
+      }
+    ],
+    "limited_time_promotions": [
+      {
+        "id": "summer_travel_2025",
+        "title": "Summer Travel Multiplier",
+        "description": "2x additional points on travel bookings",
+        "eligible_cards": ["platinum", "gold"],
+        "category": "travel",
+        "multiplier": 2,
+        "start_date": "2025-06-01",
+        "end_date": "2025-08-31",
+        "max_bonus_points": 50000
+      },
+      {
+        "id": "grocery_boost_2025",
+        "title": "Grocery Rewards Boost",
+        "description": "Extra 2% cash back at supermarkets",
+        "eligible_cards": ["blue_cash_preferred"],
+        "category": "groceries",
+        "bonus_rate": 2,
+        "start_date": "2025-07-01", 
+        "end_date": "2025-09-30",
+        "max_bonus": 200
+      }
+    ]
+  }

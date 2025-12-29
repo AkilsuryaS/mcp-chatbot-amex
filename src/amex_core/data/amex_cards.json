@@ -1,0 +1,149 @@
+{
+    "cards": [
+      {
+        "id": "platinum",
+        "name": "The Platinum Card® from American Express",
+        "type": "charge",
+        "annual_fee": 695,
+        "signup_bonus": {
+          "points": 80000,
+          "requirement": "Spend $6,000 in first 6 months"
+        },
+        "rewards": {
+          "travel": 5,
+          "dining": 1,
+          "general": 1
+        },
+        "benefits": [
+          "Airport lounge access (Centurion, Delta, Priority Pass)",
+          "$200 annual airline fee credit",
+          "$200 annual hotel credit",
+          "Global Entry/TSA PreCheck credit",
+          "Concierge service",
+          "Premium car rental status"
+        ],
+        "eligibility": {
+          "min_credit_score": 700,
+          "min_income": 75000,
+          "target_audience": "frequent_travelers"
+        },
+        "category": "premium_travel"
+      },
+      {
+        "id": "gold",
+        "name": "Gold Card® from American Express",
+        "type": "charge", 
+        "annual_fee": 250,
+        "signup_bonus": {
+          "points": 60000,
+          "requirement": "Spend $4,000 in first 6 months"
+        },
+        "rewards": {
+          "dining": 4,
+          "groceries": 4,
+          "travel": 3,
+          "general": 1
+        },
+        "benefits": [
+          "$120 annual dining credit",
+          "$120 annual Uber cash",
+          "No foreign transaction fees",
+          "Baggage insurance",
+          "Purchase protection"
+        ],
+        "eligibility": {
+          "min_credit_score": 650,
+          "min_income": 50000,
+          "target_audience": "dining_enthusiasts"
+        },
+        "category": "lifestyle"
+      },
+      {
+        "id": "green",
+        "name": "Green Card® from American Express",
+        "type": "charge",
+        "annual_fee": 150,
+        "signup_bonus": {
+          "points": 40000,
+          "requirement": "Spend $2,000 in first 6 months"
+        },
+        "rewards": {
+          "transit": 3,
+          "dining": 3,
+          "travel": 1,
+          "general": 1
+        },
+        "benefits": [
+          "$100 annual LoungeBuddy credit",
+          "CLEAR® credit",
+          "No foreign transaction fees",
+          "Travel insurance"
+        ],
+        "eligibility": {
+          "min_credit_score": 630,
+          "min_income": 40000,
+          "target_audience": "urban_commuters"
+        },
+        "category": "everyday"
+      },
+      {
+        "id": "business_platinum",
+        "name": "The Business Platinum Card® from American Express",
+        "type": "charge",
+        "annual_fee": 695,
+        "signup_bonus": {
+          "points": 120000,
+          "requirement": "Spend $15,000 in first 3 months"
+        },
+        "rewards": {
+          "travel": 5,
+          "shipping": 5,
+          "advertising": 5,
+          "general": 1
+        },
+        "benefits": [
+          "$200 annual airline fee credit",
+          "$200 annual hotel credit", 
+          "Airport lounge access",
+          "Dell credit",
+          "Adobe credit",
+          "WeWork access"
+        ],
+        "eligibility": {
+          "min_credit_score": 700,
+          "min_business_revenue": 100000,
+          "target_audience": "business_owners"
+        },
+        "category": "business"
+      },
+      {
+        "id": "blue_cash_preferred",
+        "name": "Blue Cash Preferred® Card from American Express",
+        "type": "credit",
+        "annual_fee": 95,
+        "signup_bonus": {
+          "cash": 250,
+          "requirement": "Spend $3,000 in first 6 months"
+        },
+        "rewards": {
+          "groceries": 6,
+          "streaming": 6,
+          "transit": 3,
+          "gas": 3,
+          "general": 1
+        },
+        "benefits": [
+          "Cash back rewards",
+          "No foreign transaction fees",
+          "Purchase protection",
+          "Extended warranty"
+        ],
+        "eligibility": {
+          "min_credit_score": 580,
+          "min_income": 30000,
+          "target_audience": "cashback_seekers"
+        },
+        "category": "cashback"
+      }
+    ]
+  }

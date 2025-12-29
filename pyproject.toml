@@ -1,0 +1,93 @@
+[project]
+name = "amex-agentic-chatbot"
+version = "0.1.0"
+description = "Amex agentic chatbot (FastAPI + MCP mock server) using mock data."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Your Name" }
+]
+keywords = ["fastapi", "mcp", "fastmcp", "uv", "chatbot"]
+
+# Core runtime dependencies shared across apps/api and mcp-mock
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "pydantic-settings>=2.3",
+  "orjson>=3.10",
+  "python-dotenv>=1.0",
+  "httpx>=0.27",
+  "rich>=13.7",
+  "fastmcp>=0.3.0",
+  "openai>=2.14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-asyncio>=0.23",
+  "ruff>=0.6",
+  "mypy>=1.10",
+  "types-requests>=2.31",
+]
+
+# If you want to run things as "uv run <command>", these help.
+[project.scripts]
+api = "apps.api.main:run"
+mcp-mock = "mcp_mock.server:run"
+
+# Tell build backends where your package lives (src layout).
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amex_core"]
+
+# ----------------------------
+# Tooling: Ruff (lint/format)
+# ----------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "apps", "mcp-mock", "tests"]
+exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]  # handled by formatter/line-length
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ----------------------------
+# Tooling: MyPy
+# ----------------------------
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
+mypy_path = ["src"]
+packages = ["amex_core"]
+
+# ----------------------------
+# Tooling: Pytest
+# ----------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+
+
+# --------------------
+# mock data path 
+# --------------------
+[tool.setuptools.package-data]
+amex_core = ["data/*.json"]

@@ -1,0 +1,91 @@
+{
+    "customers": [
+      {
+        "id": "demo_user_1",
+        "name": "Sarah Johnson",
+        "profile": {
+          "credit_score": 720,
+          "annual_income": 85000,
+          "age": 32,
+          "location": "New York, NY",
+          "occupation": "Marketing Manager"
+        },
+        "spending_patterns": {
+          "monthly_total": 4200,
+          "categories": {
+            "dining": 800,
+            "groceries": 600,
+            "travel": 1200,
+            "gas": 300,
+            "shopping": 900,
+            "utilities": 400
+          }
+        },
+        "current_cards": ["gold"],
+        "preferences": {
+          "travel_frequency": "monthly",
+          "dining_preference": "frequent",
+          "primary_goal": "travel_rewards"
+        },
+        "personality": "frequent_traveler"
+      },
+      {
+        "id": "demo_user_2", 
+        "name": "Michael Chen",
+        "profile": {
+          "credit_score": 680,
+          "annual_income": 95000,
+          "age": 28,
+          "location": "San Francisco, CA",
+          "occupation": "Software Engineer"
+        },
+        "spending_patterns": {
+          "monthly_total": 3800,
+          "categories": {
+            "dining": 1200,
+            "groceries": 400,
+            "travel": 600,
+            "transportation": 800,
+            "tech": 500,
+            "entertainment": 300
+          }
+        },
+        "current_cards": [],
+        "preferences": {
+          "travel_frequency": "quarterly",
+          "dining_preference": "takeout_heavy",
+          "primary_goal": "dining_rewards"
+        },
+        "personality": "urban_professional"
+      },
+      {
+        "id": "demo_user_3",
+        "name": "Jennifer Rodriguez",
+        "profile": {
+          "credit_score": 750,
+          "annual_income": 120000,
+          "age": 45,
+          "location": "Chicago, IL",
+          "occupation": "Business Owner"
+        },
+        "spending_patterns": {
+          "monthly_total": 8500,
+          "categories": {
+            "business_expenses": 5000,
+            "travel": 1500,
+            "dining": 700,
+            "groceries": 500,
+            "office_supplies": 400,
+            "advertising": 400
+          }
+        },
+        "current_cards": ["business_platinum"],
+        "preferences": {
+          "travel_frequency": "weekly",
+          "business_focus": true,
+          "primary_goal": "business_rewards"
+        },
+        "personality": "business_owner"
+      }
+    ]
+  }

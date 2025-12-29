@@ -1,0 +1,121 @@
+{
+    "categories": {
+      "dining": {
+        "description": "Restaurants, bars, cafes, food delivery",
+        "typical_monthly_spend": {
+          "low": 200,
+          "medium": 500,
+          "high": 1000
+        },
+        "best_cards": ["gold", "green"],
+        "max_rates": {
+          "gold": 4,
+          "green": 3,
+          "platinum": 1
+        }
+      },
+      "groceries": {
+        "description": "Supermarkets, grocery stores",
+        "typical_monthly_spend": {
+          "low": 300,
+          "medium": 600,
+          "high": 1200
+        },
+        "best_cards": ["blue_cash_preferred", "gold"],
+        "max_rates": {
+          "blue_cash_preferred": 6,
+          "gold": 4
+        }
+      },
+      "travel": {
+        "description": "Airlines, hotels, rental cars, travel agencies",
+        "typical_monthly_spend": {
+          "low": 200,
+          "medium": 800,
+          "high": 2000
+        },
+        "best_cards": ["platinum", "business_platinum", "gold"],
+        "max_rates": {
+          "platinum": 5,
+          "business_platinum": 5,
+          "gold": 3
+        }
+      },
+      "gas": {
+        "description": "Gas stations, fuel",
+        "typical_monthly_spend": {
+          "low": 100,
+          "medium": 250,
+          "high": 500
+        },
+        "best_cards": ["blue_cash_preferred"],
+        "max_rates": {
+          "blue_cash_preferred": 3
+        }
+      },
+      "transit": {
+        "description": "Public transportation, rideshare, parking",
+        "typical_monthly_spend": {
+          "low": 50,
+          "medium": 200,
+          "high": 600
+        },
+        "best_cards": ["green", "blue_cash_preferred"],
+        "max_rates": {
+          "green": 3,
+          "blue_cash_preferred": 3
+        }
+      },
+      "streaming": {
+        "description": "Netflix, Spotify, streaming services",
+        "typical_monthly_spend": {
+          "low": 30,
+          "medium": 75,
+          "high": 150
+        },
+        "best_cards": ["blue_cash_preferred"],
+        "max_rates": {
+          "blue_cash_preferred": 6
+        }
+      },
+      "business_expenses": {
+        "description": "Office supplies, shipping, advertising",
+        "typical_monthly_spend": {
+          "low": 500,
+          "medium": 2000,
+          "high": 10000
+        },
+        "best_cards": ["business_platinum"],
+        "max_rates": {
+          "business_platinum": 5
+        }
+      }
+    },
+    "spending_profiles": {
+      "frequent_traveler": {
+        "primary_categories": ["travel", "dining"],
+        "recommended_cards": ["platinum", "gold"],
+        "monthly_range": [2000, 8000]
+      },
+      "urban_professional": {
+        "primary_categories": ["dining", "transit", "groceries"],
+        "recommended_cards": ["gold", "green"],
+        "monthly_range": [1500, 4000]
+      },
+      "family_focused": {
+        "primary_categories": ["groceries", "gas", "streaming"],
+        "recommended_cards": ["blue_cash_preferred", "gold"],
+        "monthly_range": [2000, 5000]
+      },
+      "business_owner": {
+        "primary_categories": ["business_expenses", "travel", "dining"],
+        "recommended_cards": ["business_platinum"],
+        "monthly_range": [3000, 15000]
+      },
+      "cashback_seeker": {
+        "primary_categories": ["groceries", "gas", "streaming"],
+        "recommended_cards": ["blue_cash_preferred"],
+        "monthly_range": [1000, 3000]
+      }
+    }
+  }

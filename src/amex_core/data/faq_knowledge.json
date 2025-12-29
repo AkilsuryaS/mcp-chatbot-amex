@@ -1,0 +1,68 @@
+{
+    "categories": {
+      "account_management": [
+        {
+          "question": "How do I check my Membership Rewards points balance?",
+          "answer": "You can check your points balance by logging into your online account, using the Amex mobile app, or calling the number on the back of your card. Points are updated in real-time after purchases post to your account."
+        },
+        {
+          "question": "When do I get charged the annual fee?",
+          "answer": "The annual fee is typically charged within 30-60 days after account opening, then annually on your cardmember anniversary. Some cards may prorate the first year's fee."
+        },
+        {
+          "question": "How do I cancel my American Express card?",
+          "answer": "You can cancel by calling the customer service number on the back of your card, using online chat, or through your online account. Note that canceling may affect your credit score and you'll lose unused rewards."
+        }
+      ],
+      "rewards_and_benefits": [
+        {
+          "question": "Do Membership Rewards points expire?",
+          "answer": "Membership Rewards points don't expire as long as your account remains open and in good standing. However, if you cancel your card, you typically have 30 days to use remaining points."
+        },
+        {
+          "question": "What's the best way to redeem Membership Rewards points?",
+          "answer": "The highest value redemptions are typically: 1) Transfer to airline/hotel partners (1-2¢ per point), 2) Travel portal bookings (1¢+ per point), 3) Statement credits against travel purchases. Gift cards and merchandise usually offer lower value."
+        },
+        {
+          "question": "How do airline fee credits work?",
+          "answer": "Airline fee credits automatically apply to eligible purchases like baggage fees, seat upgrades, and in-flight purchases with your selected airline. Credits reset annually and unused credits don't roll over."
+        }
+      ],
+      "applications_and_approvals": [
+        {
+          "question": "What credit score do I need for an American Express card?",
+          "answer": "Requirements vary by card: Platinum/Gold typically need 700+, everyday cards may accept 650+, and some starter cards accept 580+. Income, debt-to-income ratio, and credit history also matter."
+        },
+        {
+          "question": "How long does approval take?",
+          "answer": "Most applications receive instant decisions. If additional review is needed, it can take 7-10 business days. You'll receive email updates on your application status."
+        },
+        {
+          "question": "Can I have multiple American Express cards?",
+          "answer": "Yes, you can have multiple Amex cards. However, you're limited to 5 credit cards and 10 charge cards total. Some cards have restrictions on welcome bonuses if you've had them before."
+        }
+      ],
+      "fees_and_charges": [
+        {
+          "question": "Are there foreign transaction fees?",
+          "answer": "Most American Express cards have no foreign transaction fees, making them good for international travel. Always check your specific card's terms to confirm."
+        },
+        {
+          "question": "What are late payment fees?",
+          "answer": "Late fees vary by card but typically range from $25-40. Charge cards require full balance payment by due date. Credit cards have minimum payment requirements."
+        },
+        {
+          "question": "How can I avoid interest charges?",
+          "answer": "For charge cards, pay the full balance by the due date. For credit cards, pay the full statement balance by the due date to avoid interest on purchases."
+        }
+      ]
+    },
+    "quick_facts": {
+      "membership_rewards_value": "1-2 cents per point when transferred to partners",
+      "application_timing": "Instant decisions for most applicants",
+      "customer_service_hours": "24/7 for most cards",
+      "dispute_timeframe": "60 days from statement date",
+      "credit_limit_increases": "Available every 6 months online",
+      "authorized_users": "Free on charge cards, may have fees on credit cards"
+    }
+  }
