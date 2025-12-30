@@ -7,11 +7,20 @@ from fastmcp import FastMCP
 
 from amex_core.services import MockStore
 
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
+
 mcp = FastMCP("amex-mock-mcp")
+
+# mcp health check
+@mcp.custom_route("/health", methods=["GET"])
+async def health_check(request: Request) -> PlainTextResponse:
+    return PlainTextResponse("OK")
+
 
 
 # -------------------------
-# New tools you requested
+# New tools
 # -------------------------
 
 @mcp.tool
