@@ -15,6 +15,10 @@ from apps.api.mcp_client import MCPMockClient
 from apps.api.models import ChatRequest, ChatResponse
 
 from amex_core.observability import log_tool_call_start, log_tool_call_end, new_request_id
+from apps.api.prompts.loader import load_prompt # load system prompt
+
+system_prompt = load_prompt("system-prompt.md")
+
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -64,16 +68,8 @@ async def chat(req: ChatRequest) -> ChatResponse:
     )
 
     # 2) Prepare messages
-    system = (
-        "You are an Amex card assistant. "
-        "You MUST use tools to retrieve factual details (annual fees, rewards rates, eligibility, offers, benefits). "
-        "Do NOT guess and do NOT say you can't find info if a tool can provide it. "
-        "If asked about a specific card, call list_cards or search_cards to fetch the card details. "
-        "If the user gives a card name, infer the card_id from context (e.g., 'gold card' -> 'gold')."
-    )
-
     messages: list[dict[str, Any]] = [
-        {"role": "system", "content": system},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": msg},
     ]
 
