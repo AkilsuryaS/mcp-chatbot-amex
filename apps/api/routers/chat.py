@@ -14,6 +14,8 @@ from openai import OpenAI
 from apps.api.mcp_client import MCPMockClient
 from apps.api.models import ChatRequest, ChatResponse
 
+from amex_core.observability import log_tool_call_start, log_tool_call_end, new_request_id
+
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 # In-memory conversation (mock). Replace with Redis/DB in real prod.
@@ -23,10 +25,9 @@ _CONVERSATION: list[dict[str, Any]] = []
 client = OpenAI()
 MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
 
-# MCP server path (stdio)
+# MCP server path (http)
 MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8765/mcp")
 mcp = MCPMockClient(MCP_SERVER_URL)
-
 
 
 def _mcp_tools_to_openai_tools(mcp_tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -50,6 +51,8 @@ def _mcp_tools_to_openai_tools(mcp_tools: list[dict[str, Any]]) -> list[dict[str
 
 @router.post("", response_model=ChatResponse)
 async def chat(req: ChatRequest) -> ChatResponse:
+    request_id = new_request_id()
+
     msg = (req.message or "").strip()
     if not msg:
         raise HTTPException(status_code=400, detail="message is required")
@@ -62,13 +65,12 @@ async def chat(req: ChatRequest) -> ChatResponse:
 
     # 2) Prepare messages
     system = (
-    "You are an Amex card assistant. "
-    "You MUST use tools to retrieve factual details (annual fees, rewards rates, eligibility, offers, benefits). "
-    "Do NOT guess and do NOT say you can't find info if a tool can provide it. "
-    "When asked about a specific card (e.g., Gold), call get_card or get_annual_fee with the card id. "
-    "If the user gives a card name, infer the card_id from context (e.g., 'gold card' -> 'gold')."
+        "You are an Amex card assistant. "
+        "You MUST use tools to retrieve factual details (annual fees, rewards rates, eligibility, offers, benefits). "
+        "Do NOT guess and do NOT say you can't find info if a tool can provide it. "
+        "If asked about a specific card, call list_cards or search_cards to fetch the card details. "
+        "If the user gives a card name, infer the card_id from context (e.g., 'gold card' -> 'gold')."
     )
-
 
     messages: list[dict[str, Any]] = [
         {"role": "system", "content": system},
@@ -86,7 +88,7 @@ async def chat(req: ChatRequest) -> ChatResponse:
             tool_choice="auto",
         )
 
-        msg_obj = resp.choices[0].message  # Message object
+        msg_obj = resp.choices[0].message
         tool_calls = getattr(msg_obj, "tool_calls", None)
 
         # If tool calls are requested, execute and continue
@@ -112,8 +114,16 @@ async def chat(req: ChatRequest) -> ChatResponse:
                 except json.JSONDecodeError:
                     args = {}
 
-                # Call MCP tool
-                tool_result = await mcp.call_tool(tool_name, args)
+                # ✅ Structured tool logging start
+                start = log_tool_call_start(request_id, tool_name, args)
+
+                # Call MCP tool with logging end
+                try:
+                    tool_result = await mcp.call_tool(tool_name, args)
+                    log_tool_call_end(request_id, tool_name, start, ok=True)
+                except Exception as e:
+                    log_tool_call_end(request_id, tool_name, start, ok=False, error=str(e))
+                    raise
 
                 # Send tool output back to model
                 messages.append(
@@ -131,6 +141,8 @@ async def chat(req: ChatRequest) -> ChatResponse:
         _CONVERSATION.append({"role": "user", "content": msg})
         _CONVERSATION.append({"role": "assistant", "content": final_text})
 
+        # NOTE: ChatResponse model currently doesn't include request_id.
+        # If you want request_id returned, add it to ChatResponse model.
         return ChatResponse(reply=final_text, tools_used=tools_used, suggestions=[])
 
     # loop guard hit
