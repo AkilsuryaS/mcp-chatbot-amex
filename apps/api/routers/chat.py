@@ -15,6 +15,9 @@ from apps.api.mcp_client import MCPMockClient
 from apps.api.models import ChatRequest, ChatResponse
 
 from amex_core.observability import log_tool_call_start, log_tool_call_end, new_request_id
+from apps.api.prompts.loader import load_prompt
+
+
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -183,18 +186,15 @@ async def chat(req: ChatRequest) -> ChatResponse:
     )
 
     # 2) Base system prompt + memory
-    system = (
-        "You are an Amex card assistant for a demo app using ONLY MCP tools and mock JSON data.\n"
-        "Rules:\n"
-        "- Use tools for factual details (annual fees, rewards, benefits, offers, eligibility). Never guess.\n"
-        "- If a user asks a follow-up like 'annual fee?' or 'am I eligible?' and a last_card_id exists in memory, answer for that card.\n"
-        "- If asked eligibility and memory has last_customer_id + last_card_id, call check_eligibility.\n"
-    )
+    system = load_prompt("system-prompt.md")
 
     memory_line = _render_memory(state)
 
     # 3) Build messages INCLUDING history (this is the key fix)
-    messages: List[Dict[str, Any]] = [{"role": "system", "content": system}, {"role": "system", "content": memory_line}]
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": system}, 
+        {"role": "system", "content": memory_line},
+        ]
 
     history = _SESSION_HISTORY.get(session_id, [])
     if history:
