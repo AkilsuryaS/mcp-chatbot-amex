@@ -8,30 +8,27 @@ from typing import Any
 from amex_core.settings import settings
 
 
-def _load_json(path: Path) -> Any:
-    """Load JSON from disk. Returns dict/list/None depending on file contents."""
+def _load_json_any(path: Path) -> Any:
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _as_list_of_dicts(value: Any, wrapper_key: str) -> list[dict[str, Any]]:
+def _unwrap_list(payload: Any, key: str) -> list[dict[str, Any]]:
     """
-    Accepts either:
-      - list[dict]
-      - dict like {"cards":[...]} / {"offers":[...]} / {"customers":[...]}
-    Returns a safe list[dict].
+    Accept either:
+      - a list[dict]
+      - or a dict like {"<key>": [ ... ]}
+    Return a list[dict].
     """
-    if isinstance(value, dict):
-        value = value.get(wrapper_key, [])
-    if not isinstance(value, list):
+    if payload is None:
         return []
-
-    out: list[dict[str, Any]] = []
-    for item in value:
-        if isinstance(item, dict):
-            out.append(item)
-    return out
+    if isinstance(payload, list):
+        return payload
+    if isinstance(payload, dict):
+        v = payload.get(key, [])
+        return v if isinstance(v, list) else []
+    return []
 
 
 @dataclass(frozen=True)
@@ -45,32 +42,51 @@ class MockStore:
     def load(cls) -> "MockStore":
         base = Path(settings.AMEX_DATA_DIR)
 
-        cards_blob = _load_json(base / "amex_cards.json")
-        offers_blob = _load_json(base / "offers.json")
-        customers_blob = _load_json(base / "customers_profile.json")
-        faq_blob = _load_json(base / "faq.json")
+        cards_raw = _load_json_any(base / "amex_cards.json")
+        offers_raw = _load_json_any(base / "offers.json")
+        customers_raw = _load_json_any(base / "customers_profile.json")
+        faq_raw = _load_json_any(base / "faq.json")
 
-        cards = _as_list_of_dicts(cards_blob, "cards")
-        offers = _as_list_of_dicts(offers_blob, "offers")
-        customers = _as_list_of_dicts(customers_blob, "customers")
-        faq = _as_list_of_dicts(faq_blob, "faq")
+        return cls(
+            cards=_unwrap_list(cards_raw, "cards"),
+            offers=_unwrap_list(offers_raw, "offers"),          # if your offers file is a list, this still works
+            customers=_unwrap_list(customers_raw, "customers"),
+            faq=_unwrap_list(faq_raw, "faq"),
+        )
 
-        return cls(cards=cards, offers=offers, customers=customers, faq=faq)
+    # ---- helpers ----
+    def get_customer(self, customer_id: str) -> dict[str, Any] | None:
+        """
+        Supports both:
+          - {"id": "..."}   (your current file)
+          - {"customer_id": "..."} (older style)
+        """
+        for c in self.customers:
+            if c.get("id") == customer_id or c.get("customer_id") == customer_id:
+                return c
+        return None
+
+    def _customer_credit_score(self, customer: dict[str, Any]) -> int:
+        # your JSON: customer["profile"]["credit_score"]
+        prof = customer.get("profile") or {}
+        return int(prof.get("credit_score", 0) or 0)
+
+    def _customer_annual_income(self, customer: dict[str, Any]) -> int:
+        # your JSON: customer["profile"]["annual_income"]
+        prof = customer.get("profile") or {}
+        return int(prof.get("annual_income", 0) or 0)
 
     # ---- tool operations ----
     def search_cards(self, query: str) -> list[dict[str, Any]]:
-        """
-        Search across fields that actually exist in amex_cards.json:
-        - id, name, type, category, benefits, rewards keys
-        """
         q = (query or "").strip().lower()
         if not q:
             return self.cards
 
         out: list[dict[str, Any]] = []
         for c in self.cards:
-            rewards_keys = " ".join(map(str, (c.get("rewards") or {}).keys()))
-            benefits = " ".join(map(str, c.get("benefits", []) or []))
+            # Make this robust for your new schema
+            rewards = c.get("rewards") or {}
+            benefits = c.get("benefits") or []
 
             hay = " ".join(
                 [
@@ -78,8 +94,10 @@ class MockStore:
                     str(c.get("name", "")),
                     str(c.get("type", "")),
                     str(c.get("category", "")),
-                    rewards_keys,
-                    benefits,
+                    # include rewards keys/values
+                    " ".join([f"{k}:{v}" for k, v in rewards.items()]),
+                    # include benefits text
+                    " ".join([str(b) for b in benefits]),
                 ]
             ).lower()
 
@@ -88,37 +106,30 @@ class MockStore:
 
         return out
 
-    def get_customer(self, customer_id: str) -> dict[str, Any] | None:
-        for c in self.customers:
-            if c.get("customer_id") == customer_id:
-                return c
-        return None
-
     def check_eligibility(self, customer_id: str, card_id: str) -> dict[str, Any]:
         customer = self.get_customer(customer_id)
         if not customer:
             return {"eligible": False, "reason": "Customer not found"}
 
-        score = int(customer.get("credit_score", 0))
-        income = int(customer.get("income_inr", 0))
+        score = self._customer_credit_score(customer)
+        income = self._customer_annual_income(customer)
 
-        # Simple mock rules
+        # --- Mock rules (USD-based because your mock data uses annual_income like 85000) ---
         if card_id == "platinum":
-            if score >= 750 and income >= 1200000:
+            if score >= 700 and income >= 75000:
                 return {"eligible": True, "reason": "Meets Platinum mock criteria"}
-            return {"eligible": False, "reason": "Needs credit_score>=750 and income_inr>=1200000"}
+            return {"eligible": False, "reason": "Needs credit_score>=700 and annual_income>=75000"}
 
         if card_id == "gold":
-            if score >= 700 and income >= 600000:
+            if score >= 650 and income >= 50000:
                 return {"eligible": True, "reason": "Meets Gold mock criteria"}
-            return {"eligible": False, "reason": "Needs credit_score>=700 and income_inr>=600000"}
+            return {"eligible": False, "reason": "Needs credit_score>=650 and annual_income>=50000"}
 
         return {"eligible": False, "reason": "Unknown card_id"}
 
     def rewards_estimate(self, monthly_spend_inr: int, card_id: str) -> dict[str, Any]:
+        # leaving your estimate logic intact; rename later if you want USD
         spend = max(int(monthly_spend_inr), 0)
-
-        # Super simplified estimate
         if card_id == "platinum":
             points = int(spend * 1.2)
         elif card_id == "gold":
@@ -129,5 +140,5 @@ class MockStore:
         return {"monthly_spend_inr": spend, "card_id": card_id, "estimated_points": points}
 
     def compare_cards(self, card_ids: list[str]) -> list[dict[str, Any]]:
-        wanted = {c.strip().lower() for c in (card_ids or [])}
-        return [c for c in self.cards if (c.get("id") or "").lower() in wanted]
+        wanted = set(card_ids or [])
+        return [c for c in self.cards if c.get("id") in wanted]
