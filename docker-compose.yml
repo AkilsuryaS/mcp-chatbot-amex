@@ -1,0 +1,39 @@
+services:
+  mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    container_name: amex-mcp
+    environment:
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8765"
+    ports:
+      - "8765:8765"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8765/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: amex-api
+    depends_on:
+      mcp:
+        condition: service_healthy
+    environment:
+      API_HOST: "0.0.0.0"
+      API_PORT: "8000"
+      API_CORS_ORIGINS: "*"
+      MCP_SERVER_URL: "http://mcp:8765/mcp"
+      OPENAI_MODEL: "gpt-4o-mini"
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 20

@@ -14,9 +14,8 @@ def configure_logging(level: str = "INFO") -> None:
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
     handler.setFormatter(formatter)
 
-    # Replace handlers to avoid duplicates during reload
+    
     root.handlers = [handler]
 
-    # quiet noisy libs
     logging.getLogger("uvicorn.access").setLevel("WARNING")
     logging.getLogger("httpx").setLevel("WARNING")
