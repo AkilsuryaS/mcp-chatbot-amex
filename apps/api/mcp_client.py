@@ -1,58 +1,62 @@
 from __future__ import annotations
 
-import asyncio
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Dict, Optional
 
 from fastmcp import Client
 from fastmcp.client.transports import StreamableHttpTransport
 
 
-@dataclass
-class MCPTool:
-    name: str
-    description: str
-    input_schema: dict[str, Any]
-
-
-def _to_jsonable(obj: Any) -> Any:
-    if obj is None:
-        return None
-    if hasattr(obj, "model_dump"):
-        return obj.model_dump()
-    if hasattr(obj, "dict"):
-        return obj.dict()
-    if isinstance(obj, dict):
-        return {k: _to_jsonable(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [_to_jsonable(v) for v in obj]
-    if isinstance(obj, (str, int, float, bool)):
-        return obj
-    return str(obj)
-
-
 class MCPMockClient:
     """
-    Connects to an MCP server over Streamable HTTP (recommended). :contentReference[oaicite:3]{index=3}
+    Minimal MCP client wrapper that talks to FastMCP over Streamable HTTP.
+
+    MCP_SERVER_URL must look like:
+      http://mcp:8765/mcp        (in docker)
+      http://127.0.0.1:8765/mcp  (local)
     """
 
     def __init__(self, server_url: str):
-        self._transport = StreamableHttpTransport(server_url)
-        self._lock = asyncio.Lock()
+        self.server_url = server_url.rstrip("/")
+        self._transport = StreamableHttpTransport(self.server_url)
 
-    async def list_tools(self) -> list[MCPTool]:
-        async with self._lock:
-            async with Client(self._transport) as client:
-                tools = await client.list_tools()
-                out: list[MCPTool] = []
-                for t in tools:
-                    schema = getattr(t, "inputSchema", None) or {"type": "object", "properties": {}}
-                    desc = getattr(t, "description", "") or ""
-                    out.append(MCPTool(name=t.name, description=desc, input_schema=schema))
-                return out
+    async def list_tools(self):
+        async with Client(self._transport) as client:
+            return await client.list_tools()
 
-    async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
-        async with self._lock:
-            async with Client(self._transport) as client:
-                result = await client.call_tool(name, arguments)
-                return _to_jsonable(result)
+    def _to_jsonable(self, obj: Any) -> Any:
+        """
+        Convert FastMCP/Pydantic objects into plain JSON-serializable Python.
+        """
+        if obj is None:
+            return None
+
+        # Pydantic v2 models
+        if hasattr(obj, "model_dump"):
+            return obj.model_dump()
+
+        # If it's already jsonable
+        if isinstance(obj, (dict, list, str, int, float, bool)):
+            return obj
+
+        # Fallback: try __dict__ (not always safe, but better than crashing)
+        try:
+            return dict(obj.__dict__)
+        except Exception:
+            return str(obj)
+
+    async def call_tool(self, name: str, arguments: Optional[Dict[str, Any]] = None) -> Any:
+        arguments = arguments or {}
+        async with Client(self._transport) as client:
+            res = await client.call_tool(name, arguments)
+
+            # Ensure JSONable
+            dumped = self._to_jsonable(res)
+
+            # FastMCP often returns:
+            # {"structured_content": {"result": ...}, ...}
+            if isinstance(dumped, dict):
+                structured = dumped.get("structured_content") or dumped.get("structuredContent") or {}
+                if isinstance(structured, dict) and "result" in structured:
+                    return structured["result"]
+
+            return dumped

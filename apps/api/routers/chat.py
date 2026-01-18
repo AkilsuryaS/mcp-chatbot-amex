@@ -5,7 +5,6 @@ load_dotenv()
 
 import json
 import os
-import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -16,8 +15,6 @@ from apps.api.models import ChatRequest, ChatResponse
 
 from amex_core.observability import log_tool_call_start, log_tool_call_end, new_request_id
 from apps.api.prompts.loader import load_prompt
-
-
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -74,12 +71,33 @@ def _mcp_tools_to_openai_tools(mcp_tools: list[dict[str, Any]]) -> list[dict[str
     return out
 
 
+def _tool_input_schema(t: Any) -> dict[str, Any]:
+    """
+    FastMCP Tool model differs by version:
+      - some expose .input_schema (snake_case)
+      - newer exposes .inputSchema (camelCase)
+    """
+    schema = getattr(t, "input_schema", None)
+    if schema is None:
+        schema = getattr(t, "inputSchema", None)
+    if schema is None:
+        # last resort: try model_dump if it's a pydantic model
+        try:
+            dump = t.model_dump()
+            schema = dump.get("input_schema") or dump.get("inputSchema")
+        except Exception:
+            schema = None
+
+    if schema is None:
+        schema = {"type": "object", "properties": {}}
+    return schema
+
+
 def _normalize_card_id(text: str) -> Optional[str]:
     if not text:
         return None
     t = text.lower()
 
-    # strict mappings
     mapping = {
         "gold": "gold",
         "platinum": "platinum",
@@ -87,24 +105,23 @@ def _normalize_card_id(text: str) -> Optional[str]:
         "business_platinum": "business_platinum",
         "blue_cash_preferred": "blue_cash_preferred",
     }
-    for k, v in mapping.items():
-        if k in t:
-            # special case: "business platinum"
-            if v == "platinum" and "business" in t:
-                return "business_platinum"
-            return v
 
+    # explicit names
     if "business platinum" in t:
         return "business_platinum"
     if "blue cash preferred" in t:
         return "blue_cash_preferred"
+
+    for k, v in mapping.items():
+        if k in t:
+            return v
 
     return None
 
 
 def _is_annual_fee_question(user_text: str) -> bool:
     t = user_text.lower()
-    return "annual fee" in t or "fee" in t and "annual" in t
+    return ("annual fee" in t) or ("fee" in t and "annual" in t)
 
 
 def _is_eligibility_question(user_text: str) -> bool:
@@ -146,9 +163,6 @@ def _update_memory_from_tool_call(state: Dict[str, Any], tool_name: str, args: D
 
 
 def _infer_last_card_from_assistant_text(text: str) -> Optional[str]:
-    """
-    Backup heuristic: if assistant recommended a card by name, store it.
-    """
     t = (text or "").lower()
     if "gold card" in t:
         return "gold"
@@ -179,34 +193,39 @@ async def chat(req: ChatRequest) -> ChatResponse:
     if customer_id:
         state["last_customer_id"] = customer_id
 
-    # 1) Tools
+    # 1) List tools from MCP (FIXED for inputSchema vs input_schema)
     tools_meta = await mcp.list_tools()
     tools_for_openai = _mcp_tools_to_openai_tools(
-        [{"name": t.name, "description": t.description, "input_schema": t.input_schema} for t in tools_meta]
+        [
+            {
+                "name": t.name,
+                "description": getattr(t, "description", "") or "",
+                "input_schema": _tool_input_schema(t),
+            }
+            for t in tools_meta
+        ]
     )
 
-    # 2) Base system prompt + memory
+    # 2) System prompt + memory
     system = load_prompt("system-prompt.md")
-
     memory_line = _render_memory(state)
 
-    # 3) Build messages INCLUDING history (this is the key fix)
+    # 3) Build messages INCLUDING history
     messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": system}, 
+        {"role": "system", "content": system},
         {"role": "system", "content": memory_line},
-        ]
+    ]
 
     history = _SESSION_HISTORY.get(session_id, [])
     if history:
         messages.extend(history[-MAX_HISTORY_TURNS:])
 
-    # 4) Light steering for follow-ups (no hard policies, just context)
-    # If they ask "annual fee?" and we have last_card_id, inject a tiny hint.
+    # 4) Light steering for follow-ups
     if _is_annual_fee_question(msg) and state.get("last_card_id"):
         messages.append(
             {
                 "role": "system",
-                "content": f"Follow-up detected: interpret this as asking the annual fee for card_id='{state['last_card_id']}'. Use tools.",
+                "content": f"Follow-up detected: interpret as asking annual fee for card_id='{state['last_card_id']}'. Use tools.",
             }
         )
 
@@ -268,7 +287,7 @@ async def chat(req: ChatRequest) -> ChatResponse:
                     {
                         "role": "tool",
                         "tool_call_id": tc.id,
-                        "content": json.dumps(tool_result, ensure_ascii=False),
+                        "content": json.dumps(tool_result, ensure_ascii=False, default=str),
                     }
                 )
             continue
@@ -276,11 +295,9 @@ async def chat(req: ChatRequest) -> ChatResponse:
         # Final answer
         final_text = msg_obj.content or "I couldn't generate a response."
 
-        # Store history
         _SESSION_HISTORY[session_id].append({"role": "user", "content": msg})
         _SESSION_HISTORY[session_id].append({"role": "assistant", "content": final_text})
 
-        # Backup: infer last card from assistant response (important!)
         inferred = _infer_last_card_from_assistant_text(final_text)
         if inferred:
             state["last_card_id"] = inferred
