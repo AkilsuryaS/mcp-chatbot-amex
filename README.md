@@ -43,20 +43,20 @@ The LLM has **no hardcoded knowledge** about cards, fees, or eligibility rules �
 
 ## Architecture
 
-![Amex Agentic Chatbot — System Architecture](docs/architecture.png)
+This project architecture is documented in the diagram below:
 
-The diagram above shows the full system. Here is a quick summary of each component and how they connect:
+![System Architecture](architecture-diagram.svg)
+
+### Component Breakdown
 
 | Component | Tech | Port | Responsibility |
 |---|---|---|---|
-| **Client** | curl / browser / any HTTP client | — | Sends `POST /chat` requests and receives natural-language replies |
-| **API Server** | FastAPI + uvicorn | `8000` | Receives user requests, runs the agentic OpenAI ↔ MCP loop (up to 8 iterations), maintains per-session memory |
-| **OpenAI API** | `gpt-4o-mini` (default) | External | Understands user intent, decides which MCP tools to call, generates the final answer |
-| **MCP Server** | FastMCP | `8765` | Exposes all domain tools over the MCP Streamable HTTP protocol |
-| **MockStore** | Python dataclass | — | Business logic layer: eligibility rules, rewards calculations, spending lookups |
-| **JSON Data Files** | Static files | — | Mock data store: cards, customers, transactions, offers, FAQ knowledge base |
-
-The `api` service depends on `mcp` being healthy (via Docker Compose `depends_on` health check) before it starts, so the tool server is always ready when the API boots.
+| **API Server** | FastAPI + uvicorn | `8000` | Receive user requests, manage OpenAI conversation, route tool calls, maintain session state |
+| **MCP Server** | FastMCP | `8765` | Expose domain tools over MCP Streamable HTTP protocol |
+| **MockStore** | Python dataclass | — | Business logic: search, eligibility rules, rewards calculation, spending lookups |
+| **OpenAI** | `gpt-4o-mini` (default) | External | LLM reasoning: understand intent, decide which tools to call, generate final response |
+| **Session Store** | In-memory dict | — | Track conversation history and context per `session_id` |
+| **JSON Data Files** | Static files | — | Mock cards, customers, transactions, offers, FAQ knowledge base |
 
 ---
 
