@@ -21,7 +21,7 @@
   </defs>
 
   <rect x="0" y="0" width="1600" height="980" fill="#f1f5f9" />
-  <text x="56" y="54" class="title">Amex Agentic Chatbot - System Architecture</text>
+  <text x="56" y="54" class="title">Agentic Chatbot - System Architecture</text>
 
   <text x="70" y="100" class="layer">Client Layer</text>
   <rect x="60" y="120" width="250" height="92" class="box" />
