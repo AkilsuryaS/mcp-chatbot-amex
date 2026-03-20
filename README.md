@@ -43,154 +43,20 @@ The LLM has **no hardcoded knowledge** about cards, fees, or eligibility rules �
 
 ## Architecture
 
-### High-Level Overview
+![Amex Agentic Chatbot — System Architecture](docs/architecture.png)
 
-```
-                           ┌─────────────────────────────────┐
-                           │          OpenAI API              │
-                           │    (gpt-4o-mini or configured)   │
-                           │                                  │
-                           │  • Receives user message +       │
-                           │    full list of MCP tools        │
-                           │  • Decides which tools to call   │
-                           │  • Generates final NL answer     │
-                           └───────────┬─────────────────┬───┘
-                                       │ 1. Chat Request  │ 5. Final Answer
-                                       │ 2. Tool Calls    │
-                                       ▼                  │
-┌──────────────────────────────────────────────────────────────────────────┐
-│                            Docker Compose Network                         │
-│                                                                            │
-│  ┌──────────────────────────────────────────┐                             │
-│  │           amex-api  (port 8000)           │                             │
-│  │              FastAPI Server               │                             │
-│  │                                           │                             │
-│  │  ┌─────────────────────────────────────┐ │                             │
-│  │  │           Agentic Loop              │ │                             │
-│  │  │  ┌──────────────────────────────┐   │ │                             │
-│  │  │  │  1. Fetch MCP tool schemas   │   │ │                             │
-│  │  │  │  2. Send to OpenAI           │   │ │                             │
-│  │  │  │  3. Receive tool_calls?      │   │ │                             │
-│  │  │  │     ├─ Yes → call MCP tool ──┼───┼─┼──────────────────────────┐ │
-│  │  │  │     │        inject result   │   │ │                          │ │
-│  │  │  │     │        loop again      │   │ │                          │ │
-│  │  │  │     └─ No  → return answer   │   │ │                          │ │
-│  │  │  │  (max 8 iterations)          │   │ │                          │ │
-│  │  │  └──────────────────────────────┘   │ │                          │ │
-│  │  └─────────────────────────────────────┘ │                          │ │
-│  │                                           │                          │ │
-│  │  ┌────────────────────────────────────┐  │                          │ │
-│  │  │         In-Memory Session Store    │  │                          ▼ │
-│  │  │  session_id → {                    │  │  ┌───────────────────────────────────┐
-│  │  │    last_card, customer_id,         │  │  │      amex-mcp  (port 8765)        │
-│  │  │    compared_cards,                 │  │  │         FastMCP Server             │
-│  │  │    monthly_spend,                  │  │  │                                   │
-│  │  │    message_history[]               │  │  │  Tools exposed over MCP protocol: │
-│  │  │  }                                 │  │  │                                   │
-│  │  └────────────────────────────────────┘  │  │  ┌───────────────────────────┐   │
-│  │                                           │  │  │       MCP Tools           │   │
-│  │  REST Endpoints:                          │  │  │  • list_cards             │   │
-│  │  POST /chat          → agentic loop       │  │  │  • search_cards           │   │
-│  │  GET  /chat/history  → session history    │  │  │  • list_offers            │   │
-│  │  POST /chat/clear    → reset session      │  │  │  • search_faq             │   │
-│  │  GET  /data/cards    → raw card data      │  │  │  • check_eligibility      │   │
-│  │  GET  /data/offers   → raw offer data     │  │  │  • compare_cards          │   │
-│  │  GET  /data/customers→ raw customer data  │  │  │  • rewards_estimate       │   │
-│  │  GET  /tools         → list tools         │  │  │  • get_spending_summary   │   │
-│  │  POST /tools/*       → direct tool calls  │  │  │  • get_transactions       │   │
-│  └──────────────────────────────────────────┘  │  └───────────────┬───────────┘   │
-│                                                 │                  │               │
-│                                                 │  ┌───────────────▼───────────┐   │
-│                                                 │  │       MockStore           │   │
-│                                                 │  │  (business logic layer)   │   │
-│                                                 │  └───────────────┬───────────┘   │
-│                                                 │                  │               │
-│                                                 │  ┌───────────────▼───────────┐   │
-│                                                 │  │     JSON Data Files       │   │
-│                                                 │  │  amex_cards.json          │   │
-│                                                 │  │  customers_profile.json   │   │
-│                                                 │  │  offers.json              │   │
-│                                                 │  │  transactions.json        │   │
-│                                                 │  │  faq_knowledge.json       │   │
-│                                                 │  └───────────────────────────┘   │
-│                                                 └───────────────────────────────────┘
-└──────────────────────────────────────────────────────────────────────────┘
-
-  Client (curl / browser / app)
-  └──── POST /chat ──────────────────────────────────────────▶ amex-api:8000
-```
-
----
-
-### Agentic Tool-Use Loop (Step by Step)
-
-```
-  Client                  API Server (FastAPI)                 OpenAI             MCP Server
-    │                            │                               │                     │
-    │── POST /chat ─────────────▶│                               │                     │
-    │   {message, session_id}    │                               │                     │
-    │                            │── GET tool list ─────────────────────────────────▶ │
-    │                            │◀─ [{name, description,        │                     │
-    │                            │     parameters}...]           │                     │
-    │                            │                               │                     │
-    │                            │── messages + tools ──────────▶│                     │
-    │                            │                               │                     │
-    │                            │              ┌────────────────┘                     │
-    │                            │              │  Tool call needed?                   │
-    │                            │              │  e.g. search_cards("dining")         │
-    │                            │              └────────────────▶│                    │
-    │                            │◀── tool_calls: [...]           │                    │
-    │                            │                                │                    │
-    │                            │──── call_tool("search_cards") ────────────────────▶│
-    │                            │     {"query": "dining"}        │                    │
-    │                            │◀─── tool result: [{card data}] │                    │
-    │                            │                                │                    │
-    │                            │── messages + tool result ─────▶│                    │
-    │                            │                                │                    │
-    │                            │         (loop repeats up to 8 times)                │
-    │                            │                                │                    │
-    │                            │◀── final text response ────────│                    │
-    │                            │                                │                    │
-    │◀── {reply, tools_used} ────│                               │                     │
-```
-
----
-
-### Component Breakdown
+The diagram above shows the full system. Here is a quick summary of each component and how they connect:
 
 | Component | Tech | Port | Responsibility |
 |---|---|---|---|
-| **API Server** | FastAPI + uvicorn | `8000` | Receive user requests, manage OpenAI conversation, route tool calls, maintain session state |
-| **MCP Server** | FastMCP | `8765` | Expose domain tools over MCP Streamable HTTP protocol |
-| **MockStore** | Python dataclass | — | Business logic: search, eligibility rules, rewards calculation, spending lookups |
-| **OpenAI** | `gpt-4o-mini` (default) | External | LLM reasoning: understand intent, decide which tools to call, generate final response |
-| **Session Store** | In-memory dict | — | Track conversation history and context per `session_id` |
-| **JSON Data Files** | Static files | — | Mock cards, customers, transactions, offers, FAQ knowledge base |
+| **Client** | curl / browser / any HTTP client | — | Sends `POST /chat` requests and receives natural-language replies |
+| **API Server** | FastAPI + uvicorn | `8000` | Receives user requests, runs the agentic OpenAI ↔ MCP loop (up to 8 iterations), maintains per-session memory |
+| **OpenAI API** | `gpt-4o-mini` (default) | External | Understands user intent, decides which MCP tools to call, generates the final answer |
+| **MCP Server** | FastMCP | `8765` | Exposes all domain tools over the MCP Streamable HTTP protocol |
+| **MockStore** | Python dataclass | — | Business logic layer: eligibility rules, rewards calculations, spending lookups |
+| **JSON Data Files** | Static files | — | Mock data store: cards, customers, transactions, offers, FAQ knowledge base |
 
----
-
-### Data Flow: Docker Networking
-
-```
-  ┌─────────────────────────────────────────────────────────┐
-  │                   docker-compose network                  │
-  │                                                           │
-  │  ┌────────────────┐   depends_on    ┌─────────────────┐  │
-  │  │   amex-api     │  (health check) │    amex-mcp     │  │
-  │  │   port 8000    │────────────────▶│   port 8765     │  │
-  │  │                │                 │                 │  │
-  │  │ MCP_SERVER_URL=│                 │ /health → 200   │  │
-  │  │ http://mcp:    │                 │ before api      │  │
-  │  │ 8765/mcp       │                 │ starts          │  │
-  │  └────────────────┘                 └─────────────────┘  │
-  │          ▲                                                 │
-  │          │ exposed to host                                 │
-  └──────────┼─────────────────────────────────────────────── ┘
-             │
-      localhost:8000  ◀── your curl / frontend calls
-```
-
-The `api` service waits for `mcp` to pass its `/health` check before starting, ensuring the tool server is always ready when the API boots.
+The `api` service depends on `mcp` being healthy (via Docker Compose `depends_on` health check) before it starts, so the tool server is always ready when the API boots.
 
 ---
 
