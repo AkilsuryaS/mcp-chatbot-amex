@@ -43,9 +43,7 @@ The LLM has **no hardcoded knowledge** about cards, fees, or eligibility rules â
 
 ## Architecture
 
-This project architecture is documented in the diagram below:
-
-![System Architecture](architecture-diagram.svg)
+Architecture diagram is maintained as a separate image file: `architecture-diagram.svg`.
 
 ### Component Breakdown
 
